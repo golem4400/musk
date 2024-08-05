@@ -3,16 +3,21 @@ const path = require('path');
 const axios = require('axios');
 const readline = require('readline');
 const { HttpsProxyAgent } = require('https-proxy-agent');
+const { GetApiHash, GetHashByTime } = require('./muskgethash');
+
+let apiHash = '';
 
 class MuskEmpireAPI {
-    headers(apiKey) {
+    headers(apiKey, apiTime, apiHash) {
         return {
             "Accept": "*/*",
             "Content-Type": "application/json",
             "Api-Key": apiKey,
+            "Api-Hash": apiHash,
+            "Api-Time": apiTime,
             "Origin": "https://game.muskempire.io",
             "Referer": "https://game.muskempire.io/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
         };
     }
 
@@ -25,15 +30,16 @@ class MuskEmpireAPI {
             data: {
                 initData: initData,
                 platform: "android",
-                chatId: "",
-                chatType: "sender",
-                chatInstance: chatInstance
+                chatId: ""
             }
         };
 
         const agent = new HttpsProxyAgent(proxy);
+        const myHeader = GetApiHash(initData);
+        const temp = myHeader.headers;
+        apiHash = temp['Api-Hash']
         const response = await axios.post(url, payload, {
-            headers: this.headers(),
+            headers: myHeader.headers,
             httpsAgent: agent
         });
         return response.data;
@@ -42,8 +48,8 @@ class MuskEmpireAPI {
     async getUserData(apiKey, proxy) {
         const url = "https://api.muskempire.io/user/data/all";
         const payload = { data: {} };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -55,8 +61,8 @@ class MuskEmpireAPI {
     async claimDailyReward(apiKey, rewardId, proxy) {
         const url = "https://api.muskempire.io/quests/daily/claim";
         const payload = { data: rewardId };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -68,8 +74,8 @@ class MuskEmpireAPI {
     async getDB(apiKey, proxy) {
         const url = "https://api.muskempire.io/dbs";
         const payload = { data: { dbs: ["all"] } };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -81,8 +87,8 @@ class MuskEmpireAPI {
     async improveSkill(apiKey, skillKey, proxy) {
         const url = "https://api.muskempire.io/skills/improve";
         const payload = { data: skillKey };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -105,8 +111,8 @@ class MuskEmpireAPI {
                 seconds: seconds
             }
         };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -140,8 +146,8 @@ class MuskEmpireAPI {
                 strategy: strategy
             }
         };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,
@@ -153,8 +159,8 @@ class MuskEmpireAPI {
     async claimFightReward(apiKey, proxy) {
         const url = "https://api.muskempire.io/pvp/claim";
         const payload = { data: {} };
-        const headers = this.headers(apiKey);
-
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const agent = new HttpsProxyAgent(proxy);
         const response = await axios.post(url, payload, {
             headers,

@@ -2,16 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const readline = require('readline');
+const { GetApiHash, GetHashByTime } = require('./muskgethash');
+
+let apiHash = '';
 
 class MuskEmpireAPI {
-    headers(apiKey) {
+    headers(apiKey, apiTime, apiHash) {
         return {
             "Accept": "*/*",
             "Content-Type": "application/json",
             "Api-Key": apiKey,
+            "Api-Hash": apiHash,
+            "Api-Time": apiTime,
             "Origin": "https://game.muskempire.io",
             "Referer": "https://game.muskempire.io/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
         };
     }
 
@@ -19,25 +24,27 @@ class MuskEmpireAPI {
         const url = "https://api.muskempire.io/telegram/auth";
         const chatInstanceMatch = initData.match(/chat_instance=([^&]*)/);
         const chatInstance = chatInstanceMatch ? chatInstanceMatch[1] : '';
-        
+
         const payload = {
             data: {
                 initData: initData,
                 platform: "android",
-                chatId: "",
-                chatType: "sender",
-                chatInstance: chatInstance
+                chatId: ""
             }
         };
-        const response = await axios.post(url, payload, { headers: this.headers() });
+        const myHeader = GetApiHash(initData);
+        const temp = myHeader.headers;
+        apiHash = temp['Api-Hash']
+        const response = await axios.post(url, payload, { headers: myHeader.headers });
         return response.data;
     }
-    
+
 
     async getUserData(apiKey) {
         const url = "https://api.muskempire.io/user/data/all";
         const payload = { data: {} };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
@@ -45,7 +52,8 @@ class MuskEmpireAPI {
     async claimDailyReward(apiKey, rewardId) {
         const url = "https://api.muskempire.io/quests/daily/claim";
         const payload = { data: rewardId };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
@@ -53,7 +61,8 @@ class MuskEmpireAPI {
     async getDB(apiKey) {
         const url = "https://api.muskempire.io/dbs";
         const payload = { data: { dbs: ["all"] } };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
@@ -61,14 +70,15 @@ class MuskEmpireAPI {
     async improveSkill(apiKey, skillKey) {
         const url = "https://api.muskempire.io/skills/improve";
         const payload = { data: skillKey };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
 
     async guiTap(apiKey, amount, currentEnergy) {
         const url = "https://api.muskempire.io/hero/action/tap";
-        const seconds = Math.floor(Math.random() * (900 - 500 + 1)) + 500; 
+        const seconds = Math.floor(Math.random() * (900 - 500 + 1)) + 500;
         const payload = {
             data: {
                 data: {
@@ -80,7 +90,8 @@ class MuskEmpireAPI {
                 seconds: seconds
             }
         };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
@@ -89,9 +100,9 @@ class MuskEmpireAPI {
         const url = "https://api.muskempire.io/pvp/fight";
         const strategies = ['aggressive', 'flexible', 'protective'];
         const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-//        const strategy = "protective";
+        //        const strategy = "protective";
         let league;
-    
+
         if (level <= 4 && balance >= 10000) {
             league = 'bronze';
         } else if (level > 4 && level < 8 && balance >= 100000) {
@@ -103,23 +114,25 @@ class MuskEmpireAPI {
         } else if (level >= 13 && balance >= 100000000) {
             league = 'diamond';
         }
-    
+
         const payload = {
             data: {
                 league: league,
                 strategy: strategy
             }
         };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
-    
+
 
     async claimFightReward(apiKey) {
         const url = "https://api.muskempire.io/pvp/claim";
         const payload = { data: {} };
-        const headers = this.headers(apiKey);
+        const [_time, _hash] = GetHashByTime(payload);
+        const headers = this.headers(apiKey, _time, _hash);
         const response = await axios.post(url, payload, { headers });
         return response.data;
     }
@@ -155,13 +168,13 @@ class MuskEmpireAPI {
             .replace(/\r/g, '')
             .split('\n')
             .filter(Boolean);
-        
+
         console.log('Tool được chia sẻ miễn phí tại kênh telegram Dân Cày Airdrop @dancayairdrop !');
         const nangcap = await this.askQuestion('Bạn có muốn nâng cấp kỹ năng không? (y/n): ');
         const hoinangcap = nangcap.toLowerCase() === 'y';
         const pvp = await this.askQuestion('Bạn có muốn chơi đàm phán không? (y/n): ');
         const hoipvp = pvp.toLowerCase() === 'y';
-    
+
         while (true) {
             for (let no = 0; no < initDataList.length; no++) {
                 const initData = initDataList[no];
@@ -169,7 +182,7 @@ class MuskEmpireAPI {
                     const authResponse = await this.auth(initData);
                     if (authResponse.success) {
                         const apiKey = initData.match(/hash=([^&]*)/)[1];
-                        
+
                         await this.processUserData(apiKey, no);
                         await this.processDailyRewards(apiKey);
                         await this.processGuiTap(apiKey);
