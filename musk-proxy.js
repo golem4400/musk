@@ -128,16 +128,23 @@ class MuskEmpireAPI {
 //      const strategy = "protective";
         let league;
 
-        if (level <= 4 && balance >= 10000) {
-            league = 'bronze';
-        } else if (level > 4 && level < 8 && balance >= 100000) {
-            league = 'silver';
-        } else if (level >= 8 && level < 10 && balance >= 1000000) {
-            league = 'gold';
-        } else if (level >= 10 && level < 13 && balance >= 10000000) {
-            league = 'platinum';
-        } else if (level >= 13 && balance >= 100000000) {
+        if (level >= 13 && balance >= 100000000) {
             league = 'diamond';
+        }
+        else if (level >= 10 && balance >= 10000000) {
+            league = 'platinum';
+        }
+        else if (level >= 8 && balance >= 1000000) {
+            league = 'gold';
+        }
+        else if (level > 4 && balance >= 100000) {
+            league = 'silver';
+        }
+        else if (level <= 4 && balance >= 10000) {
+            league = 'bronze';
+        }
+        else {
+            return "Không đủ điều kiện tham gia bất kỳ giải đấu nào.";
         }
 
         const payload = {
@@ -283,25 +290,23 @@ class MuskEmpireAPI {
     async processDailyRewards(apiKey, proxy) {
         try {
             const userData = await this.getUserData(apiKey, proxy);
-            const dailyRewards = userData.data.dailyRewards;
-            for (const [rewardId, status] of Object.entries(dailyRewards)) {
-                if (status === 'canTake') {
-                    try {
-                        const claimResponse = await this.claimDailyReward(apiKey, rewardId, proxy);
-                        if (claimResponse.success) {
-                            this.log(`Điểm danh thành công ngày ${rewardId}`);
-                        } else {
-                            this.log(`Điểm danh thất bại ngày ${rewardId}`);
-                        }
-                    } catch (error) {
-                        this.log(`Lỗi khi điểm danh ngày ${rewardId}: ${error.message}`);
-                    }
+            const lastIndex = userData.data.hero.dailyRewardLastIndex;
+            const nextRewardId = lastIndex + 1;
+            try {
+                const claimResponse = await this.claimDailyReward(apiKey, nextRewardId, proxy);
+                if (claimResponse.success) {
+                    this.log(`Điểm danh thành công ngày ${nextRewardId}`);
+                } else {
+                    this.log(`Điểm danh thất bại ngày ${nextRewardId}`);
                 }
+            } catch (error) {
+                this.log(`Lỗi khi điểm danh ngày ${nextRewardId}: ${error.message}`);
             }
+    
         } catch (error) {
             this.log(`Lỗi khi xử lý phần thưởng hàng ngày: ${error.message}`);
         }
-    }
+    }    
 
     async processGuiTap(apiKey, proxy) {
         try {

@@ -97,34 +97,43 @@ class MuskEmpireAPI {
     }
 
     async pvpFight(apiKey, level, balance) {
-        const url = "https://api.muskempire.io/pvp/fight";
-        const strategies = ['aggressive', 'flexible', 'protective'];
-        const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-        //        const strategy = "protective";
-        let league;
+    const url = "https://api.muskempire.io/pvp/fight";
+    const strategies = ['aggressive', 'flexible', 'protective'];
 
-        if (level <= 4 && balance >= 10000) {
-            league = 'bronze';
-        } else if (level > 4 && level < 8 && balance >= 100000) {
-            league = 'silver';
-        } else if (level >= 8 && level < 10 && balance >= 1000000) {
-            league = 'gold';
-        } else if (level >= 10 && level < 13 && balance >= 10000000) {
-            league = 'platinum';
-        } else if (level >= 13 && balance >= 100000000) {
-            league = 'diamond';
+    const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+
+    let league;
+
+    if (level >= 13 && balance >= 100000000) {
+        league = 'diamond';
+    }
+    else if (level >= 10 && balance >= 10000000) {
+        league = 'platinum';
+    }
+    else if (level >= 8 && balance >= 1000000) {
+        league = 'gold';
+    }
+    else if (level > 4 && balance >= 100000) {
+        league = 'silver';
+    }
+    else if (level <= 4 && balance >= 10000) {
+        league = 'bronze';
+    }
+    else {
+        return "Không đủ điều kiện tham gia bất kỳ giải đấu nào.";
+    }
+
+    const payload = {
+        data: {
+        league: league,
+        strategy: strategy
         }
+    };
 
-        const payload = {
-            data: {
-                league: league,
-                strategy: strategy
-            }
-        };
-        const [_time, _hash] = GetHashByTime(payload);
-        const headers = this.headers(apiKey, _time, _hash);
-        const response = await axios.post(url, payload, { headers });
-        return response.data;
+    const [_time, _hash] = GetHashByTime(payload);
+    const headers = this.headers(apiKey, _time, _hash);
+    const response = await axios.post(url, payload, { headers });
+    return response.data;
     }
 
 
@@ -226,25 +235,23 @@ class MuskEmpireAPI {
     async processDailyRewards(apiKey) {
         try {
             const userData = await this.getUserData(apiKey);
-            const dailyRewards = userData.data.dailyRewards;
-            for (const [rewardId, status] of Object.entries(dailyRewards)) {
-                if (status === 'canTake') {
-                    try {
-                        const claimResponse = await this.claimDailyReward(apiKey, rewardId);
-                        if (claimResponse.success) {
-                            this.log(`Điểm danh thành công ngày ${rewardId}`);
-                        } else {
-                            this.log(`Điểm danh thất bại ngày ${rewardId}`);
-                        }
-                    } catch (error) {
-                        this.log(`Lỗi khi điểm danh ngày ${rewardId}: ${error.message}`);
-                    }
+            const lastIndex = userData.data.hero.dailyRewardLastIndex;
+            const nextRewardId = lastIndex + 1;
+            try {
+                const claimResponse = await this.claimDailyReward(apiKey, nextRewardId);
+                if (claimResponse.success) {
+                    this.log(`Điểm danh thành công ngày ${nextRewardId}`);
+                } else {
+                    this.log(`Điểm danh thất bại ngày ${nextRewardId}`);
                 }
+            } catch (error) {
+                this.log(`Lỗi khi điểm danh ngày ${nextRewardId}: ${error.message}`);
             }
+    
         } catch (error) {
             this.log(`Lỗi khi xử lý phần thưởng hàng ngày: ${error.message}`);
         }
-    }
+    }    
 
     async processGuiTap(apiKey) {
         try {
